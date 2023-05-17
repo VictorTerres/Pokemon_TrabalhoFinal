@@ -50,4 +50,4 @@ Executanto todos os algoritmos cada um apresentou um desempenho diferente perant
 
 ### 🎁 Expressões de gratidão
 
-* Agradecimentos especiais ao Orientador: Frederico S. Oliveira ;
+* Agradecimentos especiais ao Orientador: Frederico S. Oliveira
