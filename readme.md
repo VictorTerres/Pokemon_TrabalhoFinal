@@ -4,7 +4,8 @@ Implementação de um agente inteligente que a partir de uma determinada popula�
 
 ### 📋 Pré-requisitos
 
-Interpretador de Python 3.X
+Interpretador de [Python 3.x](https://www.python.org/downloads/)
+[Git](https://git-scm.com/)
 
 ### ⚙️ Algoritmos Utilizados
 
@@ -13,6 +14,26 @@ Para resolução do problema foram utilizados três tipos distintos de algoritmo
 * **Greedy** - Algoritmo Guloso com implementação simples.
 * **HillClimb** - Algoritmo de Subida de Encosta com implementação simples.
 * **Genetic** - Algoritmo Genético com implementação de cruzamento e de mutação simples.
+
+### 💡 Como Utilizar 
+
+1. **Clone o projeto**
+
+```bash
+git clone https://github.com/ElkiTerres/Pokemon_TrabalhoFinal
+```
+
+2. **Executar o programa**
+
+```bash
+python pokemon.py
+```
+
+ou
+
+```bash
+python3 .\pokemon.py
+```
 
 ### 🔩 Analise e comparações
 
