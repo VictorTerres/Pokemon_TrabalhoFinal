@@ -4,8 +4,8 @@ Implementação de um agente inteligente que a partir de uma determinada popula�
 
 ### 📋 Pré-requisitos
 
-Interpretador de [Python 3.x](https://www.python.org/downloads/)
-[Git](https://git-scm.com/)
+* [Python 3.x](https://www.python.org/downloads/)
+* [Git](https://git-scm.com/)
 
 ### ⚙️ Algoritmos Utilizados
 
