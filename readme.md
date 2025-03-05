@@ -1,6 +1,6 @@
 # Otimizador de Times Pokémon
 
-Implementação de um agente inteligente que a partir de uma determinada população de Pokémon distintos decide a melhor equipe possível, utilizando parametros de quantidade de vantagens e desvantagens que cada time possui em conjunto.
+Implementação de um agente inteligente que a partir de uma determinada população de Pokémon distintos decide a melhor equipe possível, utilizando parametros de quantidade de vantagens e desvantagens que cada time possui em conjunto. Projeto para trabalho final da disciplina de Inteligência Artificial.
 
 ### 📋 Pré-requisitos
 
@@ -20,7 +20,7 @@ Para resolução do problema foram utilizados três tipos distintos de algoritmo
 1. **Clone o projeto**
 
 ```bash
-git clone https://github.com/ElkiTerres/Pokemon_TrabalhoFinal
+git clone https://github.com/VictorTerres/Pokemon_TrabalhoFinal
 ```
 
 2. **Executar o programa**
