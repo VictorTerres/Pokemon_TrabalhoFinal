@@ -43,14 +43,47 @@ tipos = [
     Tipo('dragao', ['dragao'], ['dragao', 'gelo', 'fada'], []),
 ]
 
+# Tipos proibidos de serem combinados
+proibidos = {
+    tuple(sorted(['normal', 'gelo'])),
+    tuple(sorted(['normal', 'inseto'])),
+    tuple(sorted(['normal', 'pedra'])),
+    tuple(sorted(['normal', 'metal'])),
+    tuple(sorted(['fogo', 'fada'])),
+    tuple(sorted(['gelo', 'venenoso'])),
+    tuple(sorted(['terra', 'fada'])),
+    tuple(sorted(['inseto', 'dragao'])),
+    tuple(sorted(['pedra', 'fantasma'])),
+    tuple(sorted(['normal', 'fantasma'])),
+    tuple(sorted(['fogo', 'agua'])),
+    tuple(sorted(['fogo', 'eletrico'])),
+    tuple(sorted(['fogo', 'gelo'])),
+    tuple(sorted(['eletrico', 'grama'])),
+    tuple(sorted(['eletrico', 'psiquico'])),
+    tuple(sorted(['gelo', 'metal'])),
+    tuple(sorted(['gelo', 'fada'])),
+    tuple(sorted(['psiquico', 'fantasma'])),
+    tuple(sorted(['dragao', 'fada']))
+}
+
+
 # Parâmetros Gerais dos Algoritmos
 taxa_mutacao = 0.1
 tamanho_populacao = 100
 geracoes = 100
 
 # Função que gera Pokémon aleatórios, combinando tipos em pares.
-pokemon = [random.choices(tipos, k=2) for _ in range(tamanho_populacao)]
-print('População Inicial:', pokemon)
+def gera_pokemon(tipos):
+    """Gera um Pokémon válido, evitando combinações proibidas"""
+    while True:
+        p = random.choices(tipos, k=2)
+        par = tuple(sorted([p[0].nome, p[1].nome]))
+        if par not in proibidos:
+            return p
+
+pokemon = [gera_pokemon(tipos) for _ in range(tamanho_populacao)]
+for p in pokemon:
+    print(p)
 
 # Escolha de Pokémon Aleatórios sem repetição
 time = random.sample(pokemon, k=6)
@@ -86,21 +119,28 @@ def lista_imunidades(time):
     total_imunidades = len(imunidades)
     return imunidades, total_imunidades
 
-# ------- saldo e fitness (uso de peso para imunidades e penalidade por duplicação) -------
-def saldo(time, peso_imunidade=0.5, penalidade_duplicacao=0.25):
+# Pesos globais ajustáveis
+PESO_VANTAGEM = 1.0      # quanto maior, mais foco em vantagens
+PESO_DESVANTAGEM = 0.5    # quanto maior, mais penaliza fraquezas
+PESO_IMUNIDADE = 0.2      # quanto maior, mais valor às imunidades
+PENALIDADE_DUPLICACAO = 1.5  # penalidade por repetição de cobertura
+
+def saldo(time, peso_vantagem=PESO_VANTAGEM, peso_desvantagem=PESO_DESVANTAGEM,
+          peso_imunidade=PESO_IMUNIDADE, penalidade_duplicacao=PENALIDADE_DUPLICACAO,
+          penalizar_por='tipo'):
     """
-    Calcula o saldo do time:
-      saldo = vantagens_unicas - desvantagens_unicas + peso_imunidade * imunidades_unicas
-    Além disso, subtrai uma penalidade leve por duplicações de cobertura (opcional).
-    - peso_imunidade: reduz o efeito das imunidades (0..1, menor = menos impacto)
-    - penalidade_duplicacao: penaliza casos em que a mesma vantagem/imunidade aparece em vários pokémon.
+    Calcula o saldo do time considerando pesos para vantagens, desvantagens e imunidades.
+    
+    penalizar_por: 'coverage' -> penaliza duplicação de vantagens/imunidades
+                    'tipo'     -> penaliza repetição de tipos nos pokémon do time
     """
-    # contadores por tipo para detectar duplicações
     vant_counter = Counter()
     imun_counter = Counter()
     des_set = set()
+    tipo_counter = Counter()  # conta a repetição de tipos do time
 
     for p in time:
+        # Coverage
         vant_counter.update(p[0].vantagens)
         vant_counter.update(p[1].vantagens)
         imun_counter.update(p[0].imunidades)
@@ -108,19 +148,28 @@ def saldo(time, peso_imunidade=0.5, penalidade_duplicacao=0.25):
         des_set.update(p[0].desvantagens)
         des_set.update(p[1].desvantagens)
 
+        # Tipos do Pokémon
+        tipo_counter.update([p[0].nome, p[1].nome])
+
     total_vant_unicas = len(set(vant_counter.keys()))
     total_des_unicas = len(des_set)
     total_imun_unicas = len(set(imun_counter.keys()))
 
-    # DUPLICAÇÕES: quantas vantagens/imunidades repetidas existem (soma de (count-1) para cada tipo)
-    duplicacoes_vant = sum(max(0, c - 1) for c in vant_counter.values())
-    duplicacoes_imun = sum(max(0, c - 1) for c in imun_counter.values())
+    # Penalidade
+    if penalizar_por == 'coverage':
+        duplicacoes_vant = sum(max(0, c - 1) for c in vant_counter.values())
+        duplicacoes_imun = sum(max(0, c - 1) for c in imun_counter.values())
+        penalidade_total = penalidade_duplicacao * (duplicacoes_vant + duplicacoes_imun)
+    elif penalizar_por == 'tipo':
+        duplicacoes_tipo = sum(max(0, c - 1) for c in tipo_counter.values())
+        penalidade_total = penalidade_duplicacao * duplicacoes_tipo
+    else:
+        penalidade_total = 0
 
-    # penalidade total por duplicação (você pode reduzir/zerar esta linha se não quiser penalizar)
-    penalidade_total = penalidade_duplicacao * (duplicacoes_vant + duplicacoes_imun)
-
-    # cálculo final (note o peso menor para imunidades)
-    score = total_vant_unicas - total_des_unicas + peso_imunidade * total_imun_unicas - penalidade_total
+    score = (peso_vantagem * total_vant_unicas
+             - peso_desvantagem * total_des_unicas
+             + peso_imunidade * total_imun_unicas
+             - penalidade_total)
     return score
 
 # Gerar time inicial aleatório
@@ -188,8 +237,7 @@ def hill_climbing(time, max_iter=10):
 
 # Função de Avaliação de Aptidão (Fitness)
 def fitness(time):
-    saldo_total = saldo(time)
-    return saldo_total
+    return saldo(time)
 
 # Função de Seleção dos Pais por Torneio
 def seleciona_pais(populacao):
