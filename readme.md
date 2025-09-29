@@ -45,7 +45,7 @@ Executanto todos os algoritmos cada um apresentou um desempenho diferente perant
 
 ### ✒️ Autores
 
-* **João Victor Terres Nonato** - *Trabalho Inicial, Desenvolvimento, Vídeo de Apresentação*
+* **João Victor Terres Nonato** - *Trabalho Inicial, Desenvolvimento, Vídeo de Apresentação, Atualizações, Correções e Controle de Versionamento*
 * **Guilherme Henrique Ribeiro** - *Documentação, Desenvolvimento, Testes e Execução*
 
 ### 🎁 Expressões de gratidão

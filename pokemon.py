@@ -2,16 +2,16 @@
 
 O presente código, pretende implementar alguns algoritmos descobertos durante o semestre na aula de IA para resolução de um problema simples. O Problema consiste na resolução de um dilema de escolhas, temos um cenário ficticio com caracteristicas ficticias, e o objetivo é resolve-lo da melhor forma possivel.
 
-Um treinador tem a sua disposição uma quantidade aleatória de Pokémon para montar seu time ideal, porém ele dispõe de muitos monstrinhos distintos. Para contextualização, cada pokémon tem entre um e dois tipos associados a si, nunca mais que dois, e cada um desses tipos tem vantagens e desvantagens contra outros tipos, o que gera os conflitos e estratégias de batalha. O nosso treinador em questão deseja montar um time de 6 monstinhos (escolhendo entre os que estão a sua disposição) de uma maneira que cubra a maior quantidade de vantagens possíveis. Como são 18 tipos no total, quanto mais próximo a esse valor melhor.
+Um treinador tem a sua disposição uma quantidade aleatória de Pokémon para montar seu time ideal, porém ele dispõe de muitos monstrinhos distintos. Para contextualização, cada pokémon tem entre um e dois tipos associados a si, nunca mais que dois, e cada um desses tipos tem vantagens e desvantagens contra outros tipos, o que gera os conflitos e estratégias de batalha. O nosso treinador em questão deseja montar um time de 6 monstrinhos (escolhendo entre os que estão a sua disposição) de uma maneira que cubra a maior quantidade de vantagens possíveis. Como são 18 tipos no total, quanto mais próximo a esse valor melhor.
 
 Para resolver esse problema então, o programa irá primeiramente gerar n Pokémon aleatórios, e então montar um time aleatório. Foi implementada uma função que gera os Pokémon, bem como uma que calcula a quantidade de vantagens que um time cobre.
 
 Para otimizarmos, foram implementados 3 algoritmos distintos de escolha de times, que focarão em garantir que o time formado esteja mais próximo de 18 vantagens no total.
 """
-
+from collections import Counter
 import random
 
-# Classificação e listagem de cada um dos tipos e suas vantagens. Pode se notar que cada tipo tem vantagens e desvantagens únicas.
+# Classificação e listagem de cada um dos tipos e suas vantagens, desvantagens e imunidades. Pode se notar que cada tipo tem vantagens, desvantagens e imunidades únicas.
 class Tipo:
     def __init__(self, nome, vantagens, desvantagens, imunidades):
      self.nome = nome
@@ -46,7 +46,7 @@ tipos = [
 # Parâmetros Gerais dos Algoritmos
 taxa_mutacao = 0.1
 tamanho_populacao = 100
-geracoes = 20
+geracoes = 100
 
 # Função que gera Pokémon aleatórios, combinando tipos em pares.
 pokemon = [random.choices(tipos, k=2) for _ in range(tamanho_populacao)]
@@ -55,43 +55,75 @@ print('População Inicial:', pokemon)
 # Escolha de Pokémon Aleatórios sem repetição
 time = random.sample(pokemon, k=6)
 
-# Função que calcula a quantidade de vantagens que um time apresenta
+# Funções que listam as vantagens, desvantagens e imunidades do time
 def lista_vantagens(time):
+    """Retorna (lista_de_vantagens_unicas, total) — vantagens contadas como únicas."""
     vantagens_unicas = set()
-    for t in time:
-        vantagens_unicas.update(t[0].vantagens)
-        vantagens_unicas.update(t[1].vantagens)
+    for p in time:
+        vantagens_unicas.update(p[0].vantagens)
+        vantagens_unicas.update(p[1].vantagens)
     vantagens = list(vantagens_unicas)
     total_vantagens = len(vantagens)
     return vantagens, total_vantagens
 
-# Função que calcula a quantidade de desvantagens que um time apresenta
 def lista_desvantagens(time):
+    """Retorna (lista_de_desvantagens_unicas, total) — desvantagens contadas como únicas."""
     desvantagens_unicas = set()
-    for t in time:
-        desvantagens_unicas.update(t[0].desvantagens)
-        desvantagens_unicas.update(t[1].desvantagens)
+    for p in time:
+        desvantagens_unicas.update(p[0].desvantagens)
+        desvantagens_unicas.update(p[1].desvantagens)
     desvantagens = list(desvantagens_unicas)
     total_desvantagens = len(desvantagens)
     return desvantagens, total_desvantagens
 
 def lista_imunidades(time):
+    """Retorna (lista_de_imunidades_unicas, total) — imunidades contadas como únicas."""
     imunidades_unicas = set()
-    for t in time:
-        imunidades_unicas.update(t[0].imunidades)
-        imunidades_unicas.update(t[1].imunidades)
+    for p in time:
+        imunidades_unicas.update(p[0].imunidades)
+        imunidades_unicas.update(p[1].imunidades)
     imunidades = list(imunidades_unicas)
     total_imunidades = len(imunidades)
     return imunidades, total_imunidades
 
-# Função que calcula o saldo final do time (vantagens - desvantagens)
-def saldo(time):
-    _, total_vantagens = lista_vantagens(time)
-    _, total_desvantagens = lista_desvantagens(time)
-    _, total_imunidades = lista_imunidades(time)
-    saldo = total_vantagens + total_imunidades - total_desvantagens
-    return saldo
+# ------- saldo e fitness (uso de peso para imunidades e penalidade por duplicação) -------
+def saldo(time, peso_imunidade=0.5, penalidade_duplicacao=0.25):
+    """
+    Calcula o saldo do time:
+      saldo = vantagens_unicas - desvantagens_unicas + peso_imunidade * imunidades_unicas
+    Além disso, subtrai uma penalidade leve por duplicações de cobertura (opcional).
+    - peso_imunidade: reduz o efeito das imunidades (0..1, menor = menos impacto)
+    - penalidade_duplicacao: penaliza casos em que a mesma vantagem/imunidade aparece em vários pokémon.
+    """
+    # contadores por tipo para detectar duplicações
+    vant_counter = Counter()
+    imun_counter = Counter()
+    des_set = set()
 
+    for p in time:
+        vant_counter.update(p[0].vantagens)
+        vant_counter.update(p[1].vantagens)
+        imun_counter.update(p[0].imunidades)
+        imun_counter.update(p[1].imunidades)
+        des_set.update(p[0].desvantagens)
+        des_set.update(p[1].desvantagens)
+
+    total_vant_unicas = len(set(vant_counter.keys()))
+    total_des_unicas = len(des_set)
+    total_imun_unicas = len(set(imun_counter.keys()))
+
+    # DUPLICAÇÕES: quantas vantagens/imunidades repetidas existem (soma de (count-1) para cada tipo)
+    duplicacoes_vant = sum(max(0, c - 1) for c in vant_counter.values())
+    duplicacoes_imun = sum(max(0, c - 1) for c in imun_counter.values())
+
+    # penalidade total por duplicação (você pode reduzir/zerar esta linha se não quiser penalizar)
+    penalidade_total = penalidade_duplicacao * (duplicacoes_vant + duplicacoes_imun)
+
+    # cálculo final (note o peso menor para imunidades)
+    score = total_vant_unicas - total_des_unicas + peso_imunidade * total_imun_unicas - penalidade_total
+    return score
+
+# Gerar time inicial aleatório
 print(f'\nTime Inicial Gerado Aleatoriamente: {time} com {lista_vantagens(time)[1]} vantagens e {lista_desvantagens(time)[1]} desvantagens e {lista_imunidades(time)[1]} imunidades e saldo {saldo(time)}')
 
 # Função que muda o time aleatoriamente
@@ -102,6 +134,7 @@ def aleatoriza(time):
     time_novo[time_novo.index(pkm_antigo)] = pkm_novo
     _, total_vantagens = lista_vantagens(time_novo)
     _, total_desvantagens = lista_desvantagens(time_novo)
+    _, total_imunidades = lista_imunidades(time)
     total_saldo = saldo(time_novo)
     return time_novo
 
@@ -109,6 +142,7 @@ def aleatoriza(time):
 def greedy(time):
     _, total_vantagens = lista_vantagens(time)
     _, total_desvantagens = lista_desvantagens(time)
+    _, total_imunidades = lista_imunidades(time)
     saldo_inicial = saldo(time)
     pkm_antigo = random.choice(time)
     pkm_novo = random.choice(pokemon)
@@ -116,6 +150,7 @@ def greedy(time):
     time_novo[time_novo.index(pkm_antigo)] = pkm_novo
     _, total_vantagens_novo = lista_vantagens(time_novo)
     _, total_desvantagens_novo = lista_desvantagens(time_novo)
+    _, total_imunidades_novo = lista_imunidades(time_novo)
     saldo_novo = saldo(time_novo)
     if saldo_novo > saldo_inicial:
         return time_novo
@@ -126,6 +161,7 @@ def greedy(time):
 def hill_climbing(time, max_iter=10):
     _, total_vantagens = lista_vantagens(time)
     _, total_desvantagens = lista_desvantagens(time)
+    _, total_imunidades = lista_imunidades(time)
     saldo_inicial = saldo(time)
     time_atual = time
     saldo_atual = saldo_inicial
@@ -204,7 +240,7 @@ time_2 = time
 for i in range(geracoes):
     time_2 = greedy(time_2)
     #print(f'Time após iteração {i+1}: {time_2} com saldo {saldo(time_2)}')
-print(f'\nTime Final Gerado Pelo Greedy: {time_2} com vantagens, desvantagens, imunidades e saldo final: {lista_vantagens(time_2)[1]}, {lista_desvantagens(time_2)[1]},{lista_imunidades(time_2)[1]},  {saldo(time_2)}')
+print(f'\nTime Final Gerado Pelo Greedy: {time_2} com vantagens, desvantagens, imunidades e saldo final: {lista_vantagens(time_2)[1]}, {lista_desvantagens(time_2)[1]}, {lista_imunidades(time_2)[1]}, {saldo(time_2)}')
 
 time_3 = time
 
@@ -227,4 +263,24 @@ for geracao in range(geracoes):
         #print(f'Filho {i+1}: {filho}, Fitness: {fitness(filho)}')
     populacao = nova_populacao
 
-print(f'\nMelhor Time Encontrado: {max(populacao, key=fitness)}, com {lista_vantagens(max(populacao, key=fitness))[1]} vantagens, {lista_desvantagens(max(populacao, key=fitness))[1]} desvantagens, {lista_imunidades(max(populacao, key=fitness))[1]} imunidades e saldo {saldo(max(populacao, key=fitness))}')
+time_4 = max(populacao, key=fitness)
+
+print(f'\nTime Final Gerado Pelo Genético: {time_4} com {lista_vantagens(time_4)[1]} vantagens, {lista_desvantagens(time_4)[1]} desvantagens, {lista_imunidades(time_4)[1]} imunidades e saldo {saldo(time_4)}')
+
+
+# Lista com todos os candidatos
+times = [
+    ("Aleatório", time_1),
+    ("Greedy", time_2),
+    ("Hill Climbing", time_3),
+    ("Genético", time_4)
+]
+
+# Melhor time entre todos
+melhor_nome, melhor_time = max(times, key=lambda x: fitness(x[1]))
+
+print(f'\nMelhor time, {melhor_nome}: {melhor_time} '
+      f'com {lista_vantagens(melhor_time)[1]} vantagens, '
+      f'{lista_desvantagens(melhor_time)[1]} desvantagens, '
+      f'{lista_imunidades(melhor_time)[1]} imunidades '
+      f'e saldo {saldo(melhor_time)}')
